@@ -1,0 +1,76 @@
+/* Copyright 2018 Endless Mobile, Inc. */
+
+#pragma once
+
+/**
+ * SECTION:version-information
+ * @title: Version Information
+ * @short_description: Variables and functions to check the library version
+ *
+ * Some macros to check the version of the content library.
+ */
+
+/**
+ * COG_MAJOR_VERSION:
+ *
+ * Major version number (API level) of the Cog library.
+ * For example, this is 0 for version 0.6.1.
+ */
+#define COG_MAJOR_VERSION (@COG_MAJOR_VERSION@)
+/**
+ * COG_MINOR_VERSION:
+ *
+ * Minor version number of the Cog library.
+ * For example, this is 6 for version 0.6.1.
+ */
+#define COG_MINOR_VERSION (@COG_MINOR_VERSION@)
+/**
+ * COG_MICRO_VERSION:
+ *
+ * Micro version number of the Cog library.
+ * For example, this is 1 for version 0.6.1.
+ */
+#define COG_MICRO_VERSION (@COG_MICRO_VERSION@)
+
+/**
+ * COG_VERSION_S:
+ *
+ * Evaluates to a string with the version of Cog, useful for concatenating
+ * or for printing.
+ */
+#define COG_VERSION_S "@COG_MAJOR_VERSION@.@COG_MINOR_VERSION@.@COG_MICRO_VERSION@"
+
+#define _COG_ENCODE_VERSION(major,minor,micro) \
+    ((major) << 24 | (minor) << 16 | (micro) << 8)
+
+/**
+ * COG_VERSION:
+ *
+ * Evaluates to an encoded integer representation of the Cog version, useful
+ * for compile-time version comparisons.
+ *
+ * Use %COG_ENCODE_VERSION to generate an integer representation that can be
+ * compared to the result of this macro, e.g.:
+ *
+ * |[<!-- language="C" -->
+ * #if COG_VERSION >= COG_ENCODE_VERSION (0, 6, 1)
+ *   // code that can be used with Cog 0.6.1 or later
+ * #elif
+ *   // code that can be used with earlier versions of Cog
+ * #endif
+ * ]|
+ */
+#define COG_VERSION \
+  (_COG_ENCODE_VERSION (COG_MAJOR_VERSION, COG_MINOR_VERSION, COG_MICRO_VERSION))
+
+/**
+ * COG_ENCODE_VERSION:
+ * @major: the major version number, e.g. 0
+ * @minor: the minor version number, e.g. 6
+ * @micro: the micro version number, e.g. 1
+ *
+ * Generates an integer-encoded representation of a Cog version, useful for
+ * compile-time comparisons with %COG_VERSION.
+ */
+#define COG_ENCODE_VERSION(major,minor,micro) \
+  (_COG_ENCODE_VERSION ((major), (minor), (micro))

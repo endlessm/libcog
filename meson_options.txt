@@ -1,0 +1,6 @@
+option('documentation', type: 'boolean', value: false,
+  description: 'Build and install documentation')
+
+option('jasmine_junit_reports_dir', type: 'string',
+    description: 'Where to put test reports')
+
