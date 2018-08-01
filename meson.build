@@ -25,13 +25,14 @@ endif
 
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
+gio = dependency('gio-2.0')
 aws_core = dependency('aws-cpp-sdk-core', version: '>=0.12')
 cognito_idp = dependency('aws-cpp-sdk-cognito-idp', version: '>=0.12')
 
 subdir('cog')
 
 # Dependency object for gtk-doc and tests to use
-main_library_dependency = declare_dependency(dependencies: [glib, gobject],
+main_library_dependency = declare_dependency(dependencies: [glib, gobject, gio],
     include_directories: include, link_with: main_library)
 
 # Data files
@@ -45,7 +46,7 @@ config = configuration_data()
 config.set_quoted('COG_VERSION', meson.project_version())
 configure_file(configuration: config, output: 'config.h')
 
-requires = ['glib-2.0', 'gobject-2.0']
+requires = ['glib-2.0', 'gobject-2.0', 'gio-2.0']
 requires_private = ['aws-cpp-sdk-core', 'aws-cpp-sdk-cognito-idp']
 pkg.generate(filebase: api_name, libraries: [main_library],
     description: 'GObject wrapper for AWS Cognito SDK',

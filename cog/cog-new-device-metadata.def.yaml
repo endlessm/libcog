@@ -1,0 +1,17 @@
+---
+type: NewDeviceMetadata
+from_internal: true
+to_internal: false
+doc: The new device metadata type.
+fields:
+  - name: DeviceGroupKey
+    type: string
+    annotations: [nullable]
+    doc: The device group key.
+  - name: DeviceKey
+    type: string
+    annotations: [nullable]
+    min_length: 1
+    max_length: 255
+    pattern: '[\w-]+_[0-9a-f-]+'
+    doc: The device key.

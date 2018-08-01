@@ -1,0 +1,37 @@
+---
+type: AuthenticationResult
+from_internal: true
+to_internal: false
+h_file_head: |
+  #include "cog/cog-new-device-metadata.h"
+c_file_head: |
+  #include "cog/cog-boxed-private.h"
+doc: The authentication result.
+fields:
+  - name: AccessToken
+    type: string
+    annotations: [nullable]
+    pattern: '[A-Za-z0-9-_=.]+'
+    doc: The access token.
+  - name: ExpiresIn
+    type: integer
+    doc: The expiration period of the authentication result in seconds.
+  - name: IdToken
+    type: string
+    annotations: [nullable]
+    pattern: '[A-Za-z0-9-_=.]+'
+    doc: The ID token.
+  - name: NewDeviceMetadata
+    type: object
+    class: NewDeviceMetadata
+    annotations: [nullable]
+    doc: The new device metadata from an authentication result.
+  - name: RefreshToken
+    type: string
+    annotations: [nullable]
+    pattern: '[A-Za-z0-9-_=.]+'
+    doc: The refresh token.
+  - name: TokenType
+    type: string
+    annotations: [nullable]
+    doc: The token type.

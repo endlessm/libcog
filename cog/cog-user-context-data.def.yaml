@@ -1,0 +1,14 @@
+---
+type: UserContextData
+from_internal: false
+to_internal: true
+doc: |
+    Contextual data such as the user's device fingerprint, IP address, or
+    location used for evaluating the risk of an unexpected event by Amazon
+    Cognito advanced security.
+fields:
+  - name: EncodedData
+    type: string
+    annotations: [nullable]
+    setter: true
+    doc: Base64 encoded data

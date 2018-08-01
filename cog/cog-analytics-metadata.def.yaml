@@ -1,0 +1,13 @@
+---
+type: AnalyticsMetadata
+from_internal: false
+to_internal: true
+doc: An Amazon Pinpoint analytics endpoint.
+fields:
+  - name: AnalyticsEndpointId
+    type: string
+    annotations: [nullable]
+    setter: true
+    doc: |
+      Uniquely identifies a mobile device, email address, or phone number that
+      can receive messages from Amazon Pinpoint analytics.

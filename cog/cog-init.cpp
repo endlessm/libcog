@@ -1,6 +1,7 @@
 #include <aws/core/Aws.h>
 
 #include "cog/cog-init.h"
+#include "cog/cog-utils-private.h"
 
 /**
  * SECTION:init
@@ -79,4 +80,6 @@ cog_shutdown (void)
   g_return_if_fail (is_inited);
 
   Aws::ShutdownAPI (options);
+
+  _cog_free_static_data ();
 }

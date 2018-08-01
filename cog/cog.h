@@ -11,6 +11,7 @@ G_BEGIN_DECLS
 /* Pull in other header files */
 #include "cog/cog-client.h"
 #include "cog/cog-init.h"
+#include "cog/cog-utils.h"
 #include "cog/cog-version.h"
 
 #undef _COG_INSIDE_COG_H
