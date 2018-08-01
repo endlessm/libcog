@@ -24,3 +24,13 @@ cog_init_default
 cog_is_inited
 cog_shutdown
 </SECTION>
+
+<SECTION>
+<FILE>client</FILE>
+cog_client_new
+<SUBSECTION Standard>
+CogClient
+CogClientClass
+cog_client_get_type
+COG_TYPE_CLIENT
+</SECTION>

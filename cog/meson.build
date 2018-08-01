@@ -10,12 +10,14 @@ version_h = configure_file(configuration: version,
 installed_headers = [
     'cog.h',
     version_h,
+    'cog-client.h',
     'cog-init.h',
     'cog-macros.h',
 ]
 private_headers = [
 ]
 sources = [
+    'cog-client.cpp',
     'cog-init.cpp',
 ]
 

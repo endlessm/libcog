@@ -1,6 +1,7 @@
 # Copyright 2018 Endless Mobile, Inc.
 
 javascript_tests = [
+    'testClient.js',
     'testInit.js',
 ]
 
