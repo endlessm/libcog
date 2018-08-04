@@ -28,6 +28,7 @@ sources = [
 generated_boxed_types = [
     'cog-analytics-metadata',
     'cog-authentication-result',
+    'cog-code-delivery-details',
     'cog-new-device-metadata',
     'cog-user-context-data',
 ]

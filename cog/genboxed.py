@@ -223,6 +223,11 @@ def kebabify(snake):
     return re.sub('_', '-', snake)
 
 
+def is_pod(field_type):
+    """Returns whether a type is POD (Plain Old Data)"""
+    return field_type in ('bool', 'integer', 'enum')
+
+
 def field_decl_type(field):
     """Return the struct declaration type for a field"""
     field_type = field['type']
@@ -232,6 +237,8 @@ def field_decl_type(field):
         return 'int '
     if field_type == 'object':
         return 'Cog{} *'.format(field['class'])
+    if field_type == 'enum':
+        return 'Cog{} '.format(field['class'])
     raise ValueError('add a field decl type for {}'.format(field_type))
 
 
@@ -244,6 +251,8 @@ def field_setter_type_in(field_type):
         return 'int '
     if field_type == 'object':
         return 'Cog{} *'.format(field['class'])
+    if field_type == 'enum':
+        return 'Cog{} '.format(field['class'])
     raise ValueError('add a field setter type for {}'.format(field_type))
 
 
@@ -254,7 +263,7 @@ def validate_field_argument(field):
     is_nullable = 'nullable' in field.get('annotations', [])
     if field_type == 'string' and is_nullable:
         return '!{0} || *{0}'.format(snakeify(field['name']))
-    if field_type == 'integer':
+    if is_pod(field_type):
         return None
     if field_type == 'object' and is_nullable:
         return None
@@ -268,7 +277,7 @@ def free_existing_field(field):
     snake_name = snakeify(field['name'])
     if field_type == 'string':
         return 'g_clear_pointer (&self->{}, g_free);'.format(snake_name)
-    if field_type == 'integer':
+    if is_pod(field_type):
         return None
     if field_type == 'object':
         return 'g_clear_pointer (&self->{}, cog_{}_unref);'.format(
@@ -285,7 +294,7 @@ def set_field(field):
         return textwrap.dedent('''\
             if ({0})
               self->{0} = g_strdup ({0});'''.format(snake_name))
-    if field['type'] == 'integer':
+    if is_pod(field_type):
         return 'self->{0} = {0};'.format(snake_name)
     if field['type'] == 'object' and is_nullable:
         return textwrap.dedent('''\
@@ -304,7 +313,7 @@ def copy_field(field):
         return textwrap.dedent('''\
             if (self->{0})
               copy->{0} = g_strdup (self->{0});'''.format(snake_name))
-    if field_type == 'integer':
+    if is_pod(field_type):
         return 'copy->{0} = self->{0};'.format(snake_name)
     if field_type == 'object' and is_nullable:
         return textwrap.dedent('''\
@@ -319,7 +328,9 @@ def marshal_field(field):
     field_type = field['type']
     if field_type == 'string':
         return 'g_strdup (internal.Get{[name]} ().c_str ())'.format(field)
-    if field_type == 'integer':
+    if field_type == 'enum':
+        return 'Cog{0[name]} (internal.Get{0[name]} ())'.format(field)
+    if is_pod(field_type):
         return 'internal.Get{[name]} ()'.format(field)
     if field_type == 'object':
         return '_cog_{}_from_internal (internal.Get{[name]} ())'.format(

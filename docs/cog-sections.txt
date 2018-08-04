@@ -31,6 +31,9 @@ cog_client_new
 cog_client_initiate_auth
 cog_client_initiate_auth_async
 cog_client_initiate_auth_finish
+cog_client_sign_up
+cog_client_sign_up_async
+cog_client_sign_up_finish
 <SUBSECTION Standard>
 CogClient
 CogClientClass
@@ -50,6 +53,10 @@ CogAuthenticationResult
 cog_authentication_result_copy
 cog_authentication_result_ref
 cog_authentication_result_unref
+CogCodeDeliveryDetails
+cog_code_delivery_details_copy
+cog_code_delivery_details_ref
+cog_code_delivery_details_unref
 CogNewDeviceMetadata
 cog_new_device_metadata_copy
 cog_new_device_metadata_ref
@@ -63,6 +70,7 @@ cog_user_context_data_set_encoded_data
 <SUBSECTION Enums>
 CogAuthFlow
 CogChallengeName
+CogDeliveryMedium
 <SUBSECTION String constants>
 COG_PARAMETER_DEVICE_KEY
 COG_PARAMETER_NEW_PASSWORD
@@ -87,6 +95,10 @@ cog_authentication_result_get_type
 COG_TYPE_AUTHENTICATION_RESULT
 cog_challenge_name_get_type
 COG_TYPE_CHALLENGE_NAME
+cog_code_delivery_details_get_type
+COG_TYPE_CODE_DELIVERY_DETAILS
+cog_delivery_medium_get_type
+COG_TYPE_DELIVERY_MEDIUM
 cog_identity_provider_error_get_type
 COG_TYPE_IDENTITY_PROVIDER_ERROR
 cog_identity_provider_error_quark

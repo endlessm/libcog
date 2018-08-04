@@ -11,6 +11,20 @@
 G_BEGIN_DECLS
 
 /**
+ * CogDeliveryMedium:
+ * @COG_DELIVERY_MEDIUM_NOT_SET: None, invalid value.
+ * @COG_DELIVERY_MEDIUM_SMS:
+ * @COG_DELIVERY_MEDIUM_EMAIL:
+ *
+ * The delivery medium (email message or phone number).
+ */
+typedef enum {
+  COG_DELIVERY_MEDIUM_NOT_SET,
+  COG_DELIVERY_MEDIUM_SMS,
+  COG_DELIVERY_MEDIUM_EMAIL,
+} CogDeliveryMedium;
+
+/**
  * CogIdentityProviderError:
  * @COG_IDENTITY_PROVIDER_ERROR_INCOMPLETE_SIGNATURE: The request signature does
  *   not conform to AWS standards. (400)
@@ -61,7 +75,8 @@ G_BEGIN_DECLS
  * @COG_IDENTITY_PROVIDER_ERROR_NETWORK_CONNECTION:
  * @COG_IDENTITY_PROVIDER_ERROR_UNKNOWN:
  * @COG_IDENTITY_PROVIDER_ERROR_ALIAS_EXISTS:
- * @COG_IDENTITY_PROVIDER_ERROR_CODE_DELIVERY_FAILURE:
+ * @COG_IDENTITY_PROVIDER_ERROR_CODE_DELIVERY_FAILURE: This exception is thrown
+ *   when a verification code fails to deliver successfully. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_CODE_MISMATCH:
  * @COG_IDENTITY_PROVIDER_ERROR_CONCURRENT_MODIFICATION:
  * @COG_IDENTITY_PROVIDER_ERROR_DUPLICATE_PROVIDER:
@@ -70,16 +85,26 @@ G_BEGIN_DECLS
  * @COG_IDENTITY_PROVIDER_ERROR_GROUP_EXISTS:
  * @COG_IDENTITY_PROVIDER_ERROR_INTERNAL_ERROR: This exception is thrown when
  *   Amazon Cognito encounters an internal error. (500)
- * @COG_IDENTITY_PROVIDER_ERROR_INVALID_EMAIL_ROLE_ACCESS_POLICY:
+ * @COG_IDENTITY_PROVIDER_ERROR_INVALID_EMAIL_ROLE_ACCESS_POLICY: This exception
+ *   is thrown when Amazon Cognito is not allowed to use your email identity.
+ *   (400)
  * @COG_IDENTITY_PROVIDER_ERROR_INVALID_LAMBDA_RESPONSE: This exception is
  *   thrown when the Amazon Cognito service encounters an invalid AWS Lambda
  *   response. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_INVALID_O_AUTH_FLOW:
  * @COG_IDENTITY_PROVIDER_ERROR_INVALID_PARAMETER: This exception is thrown when
  *   the Amazon Cognito service encounters an invalid parameter. (400)
- * @COG_IDENTITY_PROVIDER_ERROR_INVALID_PASSWORD:
- * @COG_IDENTITY_PROVIDER_ERROR_INVALID_SMS_ROLE_ACCESS_POLICY:
- * @COG_IDENTITY_PROVIDER_ERROR_INVALID_SMS_ROLE_TRUST_RELATIONSHIP:
+ * @COG_IDENTITY_PROVIDER_ERROR_INVALID_PASSWORD: This exception is thrown when
+ *   the Amazon Cognito service encounters an invalid password. (400)
+ * @COG_IDENTITY_PROVIDER_ERROR_INVALID_SMS_ROLE_ACCESS_POLICY: This exception
+ *   is returned when the role provided for SMS configuration does not have
+ *   permission to publish using Amazon SNS. (400)
+ * @COG_IDENTITY_PROVIDER_ERROR_INVALID_SMS_ROLE_TRUST_RELATIONSHIP: This
+ *   exception is thrown when the trust relationship is invalid for the role
+ *   provided for SMS configuration.
+ *   This can happen if you do not trust `cognito-idp.amazonaws.com` or the
+ *   external ID provided in the role does not match what is provided in the SMS
+ *   configuration for the user pool. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_INVALID_USER_POOL_CONFIGURATION: This exception
  *   is thrown when the user pool configuration is invalid. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_LIMIT_EXCEEDED:
@@ -99,7 +124,9 @@ G_BEGIN_DECLS
  *   Lambda service. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_UNSUPPORTED_IDENTITY_PROVIDER:
  * @COG_IDENTITY_PROVIDER_ERROR_UNSUPPORTED_USER_STATE:
- * @COG_IDENTITY_PROVIDER_ERROR_USERNAME_EXISTS:
+ * @COG_IDENTITY_PROVIDER_ERROR_USERNAME_EXISTS: This exception is thrown when
+ *   Amazon Cognito encounters a user name that already exists in the user pool.
+ *   (400)
  * @COG_IDENTITY_PROVIDER_ERROR_USER_IMPORT_IN_PROGRESS:
  * @COG_IDENTITY_PROVIDER_ERROR_USER_LAMBDA_VALIDATION: This exception is thrown
  *   when the Amazon Cognito service encounters a user validation exception with

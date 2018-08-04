@@ -11,6 +11,7 @@
 
 #include <aws/cognito-idp/CognitoIdentityProviderClient.h>
 #include <aws/cognito-idp/model/InitiateAuthRequest.h>
+#include <aws/cognito-idp/model/SignUpRequest.h>
 #include <aws/core/utils/Outcome.h>
 #include <gio/gio.h>
 
@@ -27,9 +28,13 @@
 using Aws::Client::AsyncCallerContext;
 using Aws::CognitoIdentityProvider::CognitoIdentityProviderClient;
 using Aws::CognitoIdentityProvider::Model::AuthFlowType;
+using Aws::CognitoIdentityProvider::Model::AttributeType;
 using Aws::CognitoIdentityProvider::Model::InitiateAuthOutcome;
 using Aws::CognitoIdentityProvider::Model::InitiateAuthRequest;
 using Aws::CognitoIdentityProvider::Model::InitiateAuthResult;
+using Aws::CognitoIdentityProvider::Model::SignUpOutcome;
+using Aws::CognitoIdentityProvider::Model::SignUpRequest;
+using Aws::CognitoIdentityProvider::Model::SignUpResult;
 
 class GTaskAsyncContext : public AsyncCallerContext {
   GTask *m_task;
@@ -491,6 +496,334 @@ cog_client_initiate_auth_finish (CogClient *self,
 
   initiate_auth_unpack_result (*result, auth_result, challenge_name,
                                challenge_parameters, session);
+  delete result;
+  return TRUE;
+}
+
+static gboolean
+sign_up_validate_in_parameters (const char *client_id,
+                                const char *secret_hash,
+                                const char *username,
+                                const char *password,
+                                GHashTable *user_attributes G_GNUC_UNUSED,
+                                GHashTable *validation_data G_GNUC_UNUSED,
+                                CogAnalyticsMetadata *analytics_metadata G_GNUC_UNUSED,
+                                CogUserContextData *user_context_data G_GNUC_UNUSED)
+{
+  g_return_val_if_fail (client_id, FALSE);
+  g_return_val_if_fail (*client_id, FALSE);
+  g_return_val_if_fail (strlen (client_id) <= 128, FALSE);
+  g_return_val_if_fail (_cog_is_valid_client_id (client_id), FALSE);
+  g_return_val_if_fail (username, FALSE);
+  g_return_val_if_fail (*username, FALSE);
+  g_return_val_if_fail (strlen (username) <= 128, FALSE);
+  g_return_val_if_fail (_cog_is_valid_username (username), FALSE);
+  g_return_val_if_fail (password, FALSE);
+  g_return_val_if_fail (*password, FALSE);
+  g_return_val_if_fail (strlen (password) >= 6 && strlen (password) <= 256,
+                        FALSE);
+  g_return_val_if_fail (_cog_is_valid_password (password), FALSE);
+  if (secret_hash)
+    {
+      g_return_val_if_fail (*secret_hash, FALSE);
+      g_return_val_if_fail (strlen (secret_hash) > 128, FALSE);
+      g_return_val_if_fail (_cog_is_valid_secret_hash (secret_hash), FALSE);
+    }
+
+  return TRUE;
+}
+
+static gboolean
+sign_up_validate_out_parameters (gboolean *user_confirmed,
+                                 CogCodeDeliveryDetails **code_delivery_details,
+                                 const char **user_sub)
+{
+  g_return_val_if_fail (user_confirmed, FALSE);
+  g_return_val_if_fail (code_delivery_details, FALSE);
+  g_return_val_if_fail (user_sub, FALSE);
+  return TRUE;
+}
+
+static SignUpRequest
+sign_up_build_request (const char *client_id,
+                       const char *secret_hash,
+                       const char *username,
+                       const char *password,
+                       GHashTable *user_attributes,
+                       GHashTable *validation_data,
+                       CogAnalyticsMetadata *analytics_metadata,
+                       CogUserContextData *user_context_data)
+{
+  SignUpRequest request;
+  request.WithClientId (client_id)
+    .WithUsername (username)
+    .SetPassword (password);
+
+  if (secret_hash)
+    request.SetSecretHash (secret_hash);
+
+  if (user_attributes)
+    {
+      Aws::Vector<AttributeType> vector;
+      _cog_hash_table_to_vector (user_attributes, &vector);
+      request.SetUserAttributes (vector);
+    }
+
+  if (validation_data)
+    {
+      Aws::Vector<AttributeType> vector;
+      _cog_hash_table_to_vector (validation_data, &vector);
+      request.SetValidationData (vector);
+    }
+
+  if (analytics_metadata)
+    request.SetAnalyticsMetadata (_cog_analytics_metadata_to_internal (analytics_metadata));
+
+  if (user_context_data)
+    request.SetUserContextData (_cog_user_context_data_to_internal (user_context_data));
+
+  return request;
+}
+
+static void
+sign_up_unpack_result (SignUpResult& result,
+                       gboolean *user_confirmed,
+                       CogCodeDeliveryDetails **code_delivery_details,
+                       const char **user_sub)
+{
+  *user_confirmed = result.GetUserConfirmed ();
+  *code_delivery_details = _cog_code_delivery_details_from_internal (result.GetCodeDeliveryDetails ());
+  *user_sub = g_strdup (result.GetUserSub ().c_str ());
+}
+
+/* Work around the lack of a copy or move constructor. See above. */
+static SignUpResult *
+sign_up_move_result (const SignUpResult&& result)
+{
+  auto *retval = new SignUpResult ();
+  retval->SetUserConfirmed (result.GetUserConfirmed ());
+  retval->SetCodeDeliveryDetails (std::move (result.GetCodeDeliveryDetails ()));
+  retval->SetUserSub (std::move (result.GetUserSub ()));
+  return retval;
+}
+
+static void
+sign_up_handle_request (const CognitoIdentityProviderClient *client G_GNUC_UNUSED,
+                        const SignUpRequest& request G_GNUC_UNUSED,
+                        const SignUpOutcome& outcome,
+                        const std::shared_ptr<const AsyncCallerContext>& cx)
+{
+  GTask *task = std::static_pointer_cast<const GTaskAsyncContext> (cx)->task();
+
+  if (!outcome.IsSuccess ())
+    {
+      auto& aws_error = outcome.GetError ();
+      GError *new_error = g_error_new_literal (COG_IDENTITY_PROVIDER_ERROR,
+                                               int(aws_error.GetErrorType ()),
+                                               aws_error.GetMessage ().c_str ());
+      g_task_return_error (task, new_error);
+      return;
+    }
+
+  SignUpResult *result_ref = sign_up_move_result (std::move (outcome.GetResult ()));
+  g_task_return_pointer (task, result_ref, [](void *data)
+    {
+      delete static_cast<SignUpResult *> (data);
+    });
+}
+
+/**
+ * cog_client_sign_up:
+ * @self: the #CogClient
+ * @client_id: the ID of the client associated with the user pool
+ * @secret_hash: (nullable): hash of client secret, username, and client ID
+ * @username: the user name of the user you wish to register
+ * @password: the password of the user you wish to register
+ * @user_attributes: (nullable) (element-type utf8 utf8): a dictionary of user
+ *   attributes
+ * @validation_data: (nullable) (element-type utf8 utf8): the validation data
+ * @analytics_metadata: (nullable): Amazon Pinpoint analytics metadata for
+ *   collecting metrics
+ * @user_context_data: (nullable): contextual data for security analysis
+ * @cancellable: (nullable): optional #GCancellable object
+ * @user_confirmed: (out): a response from the server indicating that a user
+ *   registration has been confirmed
+ * @code_delivery_details: (out): the code delivery details returned by the
+ *   server
+ * @user_sub: (out): the UUID of the authenticated user
+ * @error: error location
+ *
+ * Registers the user in the specified user pool and creates a user name,
+ * password, and user attributes.
+ *
+ * If given, @secret_hash must be a keyed-hash message authentication code
+ * (HMAC) calculated using the secret key of a user pool client and username
+ * plus the client ID in the message.
+ *
+ * If including custom attributes in @user_attributes, you must prepend the
+ * `custom:` prefix to the attribute key.
+ *
+ * @user_context_data is optional contextual data such as the user's device
+ * fingerprint, IP address, or location used for evaluating the risk of an
+ * unexpected event by Amazon Cognito advanced security.
+ *
+ * The returned @user_sub is not the same as @username.
+ *
+ * Returns: %TRUE if the request completed successfully, %FALSE on error
+ */
+gboolean
+cog_client_sign_up (CogClient *self,
+                    const char *client_id,
+                    const char *secret_hash,
+                    const char *username,
+                    const char *password,
+                    GHashTable *user_attributes,
+                    GHashTable *validation_data,
+                    CogAnalyticsMetadata *analytics_metadata,
+                    CogUserContextData *user_context_data,
+                    GCancellable *cancellable,
+                    gboolean *user_confirmed,
+                    CogCodeDeliveryDetails **code_delivery_details,
+                    const char **user_sub,
+                    GError **error)
+{
+  g_return_val_if_fail(COG_IS_CLIENT (self), FALSE);
+  g_return_val_if_fail(!cancellable || G_IS_CANCELLABLE (cancellable), FALSE);
+  g_return_val_if_fail(!error || !*error, FALSE);
+  g_return_val_if_fail(
+    sign_up_validate_in_parameters (client_id, secret_hash, username, password,
+                                    user_attributes, validation_data,
+                                    analytics_metadata, user_context_data),
+    FALSE);
+  g_return_val_if_fail(
+    sign_up_validate_out_parameters (user_confirmed, code_delivery_details,
+                                     user_sub), FALSE);
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return FALSE;
+
+  CogClientPrivate *priv = GET_PRIVATE (self);
+  SignUpRequest request =
+    sign_up_build_request (client_id, secret_hash, username, password,
+                           user_attributes, validation_data, analytics_metadata,
+                           user_context_data);
+  auto outcome = priv->internal.SignUp (request);
+
+  if (!outcome.IsSuccess ())
+    {
+      auto& aws_error = outcome.GetError ();
+      GError *new_error = g_error_new_literal (COG_IDENTITY_PROVIDER_ERROR,
+                                               int (aws_error.GetErrorType ()),
+                                               aws_error.GetMessage ().c_str ());
+      g_propagate_error (error, new_error);
+      return FALSE;
+    }
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return FALSE;
+
+  sign_up_unpack_result(outcome.GetResult (), user_confirmed,
+                        code_delivery_details, user_sub);
+
+  return TRUE;
+}
+
+/**
+ * cog_client_sign_up_async:
+ * @self: the #CogClient
+ * @client_id: the ID of the client associated with the user pool
+ * @secret_hash: (nullable): hash of client secret, username, and client ID
+ * @username: the user name of the user you wish to register
+ * @password: the password of the user you wish to register
+ * @user_attributes: (nullable) (element-type utf8 utf8): a dictionary of user
+ *   attributes
+ * @validation_data: (nullable) (element-type utf8 utf8): the validation data
+ * @analytics_metadata: (nullable): Amazon Pinpoint analytics metadata for
+ *   collecting metrics
+ * @user_context_data: (nullable): contextual data for security analysis
+ * @cancellable: (nullable): optional #GCancellable object
+ * @callback: (nullable): a callback to call when the operation is complete
+ * @user_data: (nullable): the data to pass to @callback
+ *
+ * See cog_client_sign_up() for documentation.
+ * This version completes the request without blocking and calls @callback when
+ * finished.
+ * In your @callback, you must call cog_client_sign_up_finish() to get the
+ * results of the request.
+ */
+void
+cog_client_sign_up_async (CogClient *self,
+                          const char *client_id,
+                          const char *secret_hash,
+                          const char *username,
+                          const char *password,
+                          GHashTable *user_attributes,
+                          GHashTable *validation_data,
+                          CogAnalyticsMetadata *analytics_metadata,
+                          CogUserContextData *user_context_data,
+                          GCancellable *cancellable,
+                          GAsyncReadyCallback callback,
+                          gpointer user_data)
+{
+  g_return_if_fail(COG_IS_CLIENT (self));
+  g_return_if_fail(!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_return_if_fail(
+    sign_up_validate_in_parameters (client_id, secret_hash, username, password,
+                                    user_attributes, validation_data,
+                                    analytics_metadata, user_context_data));
+
+  GTask *task = g_task_new (self, cancellable, callback, user_data);
+
+  CogClientPrivate *priv = GET_PRIVATE (self);
+  SignUpRequest request =
+    sign_up_build_request (client_id, secret_hash, username, password,
+                           user_attributes, validation_data, analytics_metadata,
+                           user_context_data);
+
+  priv->internal.SignUpAsync (request, sign_up_handle_request,
+    Aws::MakeShared<GTaskAsyncContext> (_COG_ALLOCATION_TAG, task));
+}
+
+/**
+ * cog_client_sign_up_finish:
+ * @self: the #CogClient
+ * @res: the #GAsyncResult passed to your callback
+ * @user_confirmed: (out): a response from the server indicating that a user
+ *   registration has been confirmed
+ * @code_delivery_details: (out): the code delivery details returned by the
+ *   server
+ * @user_sub: (out): the UUID of the authenticated user
+ * @error: error location
+ *
+ * See cog_client_sign_up() for documentation.
+ * After starting an asynchronous request with cog_client_sign_up_async(),
+ * you must call this in your callback to finish the request and receive the
+ * return values or handle the errors.
+ *
+ * Returns: %TRUE if the request completed successfully, %FALSE on error
+ */
+gboolean
+cog_client_sign_up_finish (CogClient *self,
+                           GAsyncResult *res,
+                           gboolean *user_confirmed,
+                           CogCodeDeliveryDetails **code_delivery_details,
+                           const char **user_sub,
+                           GError **error)
+{
+  g_return_val_if_fail (COG_IS_CLIENT (self), FALSE);
+  g_return_val_if_fail (G_IS_TASK (res), FALSE);
+  g_return_val_if_fail(!error || !*error, FALSE);
+  g_return_val_if_fail(
+    sign_up_validate_out_parameters (user_confirmed, code_delivery_details,
+                                     user_sub), FALSE);
+
+  auto *result =
+    static_cast<SignUpResult *> (g_task_propagate_pointer (G_TASK (res), error));
+  if (!result)
+    return FALSE;
+
+  sign_up_unpack_result (*result, user_confirmed, code_delivery_details,
+                         user_sub);
   delete result;
   return TRUE;
 }

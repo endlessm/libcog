@@ -1,5 +1,7 @@
 #pragma once
 
+#include <aws/cognito-idp/model/AttributeType.h>
+#include <aws/core/utils/memory/stl/AWSVector.h>
 #include <glib.h>
 
 /* This "allocation tag" is passed to all AWS memory management functions */
@@ -8,3 +10,9 @@
 void _cog_free_static_data (void);
 
 gboolean _cog_is_valid_client_id (const char *string);
+gboolean _cog_is_valid_password (const char *string);
+gboolean _cog_is_valid_secret_hash (const char *string);
+gboolean _cog_is_valid_username (const char *string);
+
+void _cog_hash_table_to_vector (GHashTable *hash_table,
+                                Aws::Vector<Aws::CognitoIdentityProvider::Model::AttributeType> *vector);

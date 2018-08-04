@@ -9,6 +9,7 @@
 
 #include "cog/cog-analytics-metadata.h"
 #include "cog/cog-authentication-result.h"
+#include "cog/cog-code-delivery-details.h"
 #include "cog/cog-macros.h"
 #include "cog/cog-user-context-data.h"
 
@@ -194,5 +195,43 @@ gboolean cog_client_initiate_auth_finish (CogClient *self,
                                           GHashTable **challenge_parameters,
                                           char **session,
                                           GError **error);
+
+COG_AVAILABLE_IN_ALL
+gboolean cog_client_sign_up (CogClient *self,
+                             const char *client_id,
+                             const char *secret_hash,
+                             const char *username,
+                             const char *password,
+                             GHashTable *user_attributes,
+                             GHashTable *validation_data,
+                             CogAnalyticsMetadata *analytics_metadata,
+                             CogUserContextData *user_context_data,
+                             GCancellable *cancellable,
+                             gboolean *user_confirmed,
+                             CogCodeDeliveryDetails **code_delivery_details,
+                             const char **user_sub,
+                             GError **error);
+
+COG_AVAILABLE_IN_ALL
+void cog_client_sign_up_async (CogClient *self,
+                               const char *client_id,
+                               const char *secret_hash,
+                               const char *username,
+                               const char *password,
+                               GHashTable *user_attributes,
+                               GHashTable *validation_data,
+                               CogAnalyticsMetadata *analytics_metadata,
+                               CogUserContextData *user_context_data,
+                               GCancellable *cancellable,
+                               GAsyncReadyCallback callback,
+                               gpointer user_data);
+
+COG_AVAILABLE_IN_ALL
+gboolean cog_client_sign_up_finish (CogClient *self,
+                                    GAsyncResult *res,
+                                    gboolean *user_confirmed,
+                                    CogCodeDeliveryDetails **code_delivery_details,
+                                    const char **user_sub,
+                                    GError **error);
 
 G_END_DECLS

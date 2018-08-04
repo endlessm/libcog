@@ -1,0 +1,22 @@
+---
+type: CodeDeliveryDetails
+from_internal: true
+h_file_head: |
+  #include "cog/cog-utils.h"
+doc: The code delivery details being returned from the server.
+fields:
+  - name: AttributeName
+    type: string
+    annotations: [nullable]
+    min_length: 1
+    max_length: 32
+    pattern: '[\p{L}\p{M}\p{S}\p{N}\p{P}]+'
+    doc: The attribute name.
+  - name: DeliveryMedium
+    type: enum
+    class: DeliveryMedium
+    doc: The delivery medium (email message or phone number).
+  - name: Destination
+    type: string
+    annotations: [nullable]
+    doc: The destination for the code delivery details.
