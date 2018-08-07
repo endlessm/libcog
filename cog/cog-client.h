@@ -262,4 +262,26 @@ gboolean cog_client_sign_up_finish (CogClient *self,
                                     const char **user_sub,
                                     GError **error);
 
+COG_AVAILABLE_IN_ALL
+gboolean cog_client_update_user_attributes (CogClient *self,
+                                            const char *access_token,
+                                            GHashTable *user_attributes,
+                                            GCancellable *cancellable,
+                                            GList **code_delivery_details_list,
+                                            GError **error);
+
+COG_AVAILABLE_IN_ALL
+void cog_client_update_user_attributes_async (CogClient *self,
+                                              const char *access_token,
+                                              GHashTable *user_attributes,
+                                              GCancellable *cancellable,
+                                              GAsyncReadyCallback callback,
+                                              gpointer user_data);
+
+COG_AVAILABLE_IN_ALL
+gboolean cog_client_update_user_attributes_finish (CogClient *self,
+                                                   GAsyncResult *res,
+                                                   GList **code_delivery_details_list,
+                                                   GError **error);
+
 G_END_DECLS

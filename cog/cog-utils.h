@@ -74,10 +74,15 @@ typedef enum {
  * @COG_IDENTITY_PROVIDER_ERROR_INVALID_ACCESS_KEY_ID:
  * @COG_IDENTITY_PROVIDER_ERROR_NETWORK_CONNECTION:
  * @COG_IDENTITY_PROVIDER_ERROR_UNKNOWN:
- * @COG_IDENTITY_PROVIDER_ERROR_ALIAS_EXISTS:
+ * @COG_IDENTITY_PROVIDER_ERROR_ALIAS_EXISTS: This exception is thrown when a
+ *   user tries to confirm the account with an email or phone number that has
+ *   already been supplied as an alias from a different account.
+ *   This exception tells user the that an account with this email or phone
+ *   already exists. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_CODE_DELIVERY_FAILURE: This exception is thrown
  *   when a verification code fails to deliver successfully. (400)
- * @COG_IDENTITY_PROVIDER_ERROR_CODE_MISMATCH:
+ * @COG_IDENTITY_PROVIDER_ERROR_CODE_MISMATCH: This exception is thrown if the
+ *   provided code does not match what the server was expecting. (400)
  * @COG_IDENTITY_PROVIDER_ERROR_CONCURRENT_MODIFICATION:
  * @COG_IDENTITY_PROVIDER_ERROR_DUPLICATE_PROVIDER:
  * @COG_IDENTITY_PROVIDER_ERROR_ENABLE_SOFTWARE_TOKEN_M_F_A:

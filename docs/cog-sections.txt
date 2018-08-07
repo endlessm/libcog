@@ -37,6 +37,9 @@ cog_client_initiate_auth_finish
 cog_client_sign_up
 cog_client_sign_up_async
 cog_client_sign_up_finish
+cog_client_update_user_attributes
+cog_client_update_user_attributes_async
+cog_client_update_user_attributes_finish
 <SUBSECTION Standard>
 CogClient
 CogClientClass

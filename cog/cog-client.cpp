@@ -13,6 +13,7 @@
 #include <aws/cognito-idp/model/GetUserRequest.h>
 #include <aws/cognito-idp/model/InitiateAuthRequest.h>
 #include <aws/cognito-idp/model/SignUpRequest.h>
+#include <aws/cognito-idp/model/UpdateUserAttributesRequest.h>
 #include <aws/core/utils/Outcome.h>
 #include <gio/gio.h>
 
@@ -39,6 +40,9 @@ using Aws::CognitoIdentityProvider::Model::InitiateAuthResult;
 using Aws::CognitoIdentityProvider::Model::SignUpOutcome;
 using Aws::CognitoIdentityProvider::Model::SignUpRequest;
 using Aws::CognitoIdentityProvider::Model::SignUpResult;
+using Aws::CognitoIdentityProvider::Model::UpdateUserAttributesOutcome;
+using Aws::CognitoIdentityProvider::Model::UpdateUserAttributesRequest;
+using Aws::CognitoIdentityProvider::Model::UpdateUserAttributesResult;
 
 class GTaskAsyncContext : public AsyncCallerContext {
   GTask *m_task;
@@ -1070,6 +1074,225 @@ cog_client_sign_up_finish (CogClient *self,
 
   sign_up_unpack_result (*result, user_confirmed, code_delivery_details,
                          user_sub);
+  delete result;
+  return TRUE;
+}
+
+static gboolean
+update_user_attributes_validate_in_parameters (const char *access_token,
+                                               GHashTable *user_attributes)
+{
+  g_return_val_if_fail (access_token, FALSE);
+  g_return_val_if_fail (_cog_is_valid_access_token (access_token), FALSE);
+  g_return_val_if_fail (user_attributes, FALSE);
+  return TRUE;
+}
+
+static gboolean
+update_user_attributes_validate_out_parameters (GList **code_delivery_details)
+{
+  g_return_val_if_fail (code_delivery_details, FALSE);
+  return TRUE;
+}
+
+static UpdateUserAttributesRequest
+update_user_attributes_build_request (const char *access_token,
+                                      GHashTable *user_attributes)
+{
+  UpdateUserAttributesRequest request;
+  request.SetAccessToken (access_token);
+
+  Aws::Vector<AttributeType> vector;
+  _cog_hash_table_to_vector (user_attributes, &vector);
+  request.SetUserAttributes (vector);
+
+  return request;
+}
+
+static void
+update_user_attributes_unpack_result (UpdateUserAttributesResult& result,
+                                      GList **code_delivery_details_list)
+{
+  *code_delivery_details_list = NULL;
+  for (auto& details : result.GetCodeDeliveryDetailsList ())
+    *code_delivery_details_list =
+      g_list_prepend (*code_delivery_details_list,
+                      _cog_code_delivery_details_from_internal (details));
+  *code_delivery_details_list = g_list_reverse (*code_delivery_details_list);
+}
+
+/* Work around the lack of a copy or move constructor. See above. */
+static UpdateUserAttributesResult *
+update_user_attributes_move_result (const UpdateUserAttributesResult&& result)
+{
+  auto *retval = new UpdateUserAttributesResult ();
+  retval->SetCodeDeliveryDetailsList (std::move (result.GetCodeDeliveryDetailsList ()));
+  return retval;
+}
+
+static void
+update_user_attributes_handle_request (const CognitoIdentityProviderClient *client G_GNUC_UNUSED,
+                                       const UpdateUserAttributesRequest& request G_GNUC_UNUSED,
+                                       const UpdateUserAttributesOutcome& outcome,
+                                       const std::shared_ptr<const AsyncCallerContext>& cx)
+{
+  GTask *task = std::static_pointer_cast<const GTaskAsyncContext> (cx)->task();
+
+  if (!outcome.IsSuccess ())
+    {
+      auto& aws_error = outcome.GetError ();
+      GError *new_error = g_error_new_literal (COG_IDENTITY_PROVIDER_ERROR,
+                                               int(aws_error.GetErrorType ()),
+                                               aws_error.GetMessage ().c_str ());
+      g_task_return_error (task, new_error);
+      return;
+    }
+
+  UpdateUserAttributesResult *result_ref =
+    update_user_attributes_move_result (std::move (outcome.GetResult ()));
+  g_task_return_pointer (task, result_ref, [](void *data)
+    {
+      delete static_cast<UpdateUserAttributesResult *> (data);
+    });
+}
+
+/**
+ * cog_client_update_user_attributes:
+ * @self: the #CogClient
+ * @access_token: the access token returned by the server response
+ * @user_attributes: (element-type utf8 utf8): a dictionary of user attributes
+ * @cancellable: (nullable): optional #GCancellable object
+ * @code_delivery_details_list: (out) (element-type CogCodeDeliveryDetails):
+ *   list of code delivery details returned by the server
+ * @error: error location
+ *
+ * Allows a user to update a specific attribute (one at a time).
+ *
+ * If including custom attributes in @user_attributes, you must prepend the
+ * `custom:` prefix to the attribute key.
+ *
+ * Returns: %TRUE if the request completed successfully, %FALSE on error
+ */
+gboolean
+cog_client_update_user_attributes (CogClient *self,
+                                   const char *access_token,
+                                   GHashTable *user_attributes,
+                                   GCancellable *cancellable,
+                                   GList **code_delivery_details_list,
+                                   GError **error)
+{
+  g_return_val_if_fail(COG_IS_CLIENT (self), FALSE);
+  g_return_val_if_fail(!cancellable || G_IS_CANCELLABLE (cancellable), FALSE);
+  g_return_val_if_fail(!error || !*error, FALSE);
+  g_return_val_if_fail(
+    update_user_attributes_validate_in_parameters (access_token,
+                                                   user_attributes), FALSE);
+  g_return_val_if_fail(
+    update_user_attributes_validate_out_parameters (code_delivery_details_list),
+    FALSE);
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return FALSE;
+
+  CogClientPrivate *priv = GET_PRIVATE (self);
+  UpdateUserAttributesRequest request =
+    update_user_attributes_build_request (access_token, user_attributes);
+  auto outcome = priv->internal.UpdateUserAttributes (request);
+
+  if (!outcome.IsSuccess ())
+    {
+      auto& aws_error = outcome.GetError ();
+      GError *new_error = g_error_new_literal (COG_IDENTITY_PROVIDER_ERROR,
+                                               int (aws_error.GetErrorType ()),
+                                               aws_error.GetMessage ().c_str ());
+      g_propagate_error (error, new_error);
+      return FALSE;
+    }
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return FALSE;
+
+  update_user_attributes_unpack_result(outcome.GetResult (),
+                                       code_delivery_details_list);
+
+  return TRUE;
+}
+
+/**
+ * cog_client_update_user_attributes_async:
+ * @self: the #CogClient
+ * @access_token: the access token returned by the server response
+ * @user_attributes: (element-type utf8 utf8): a dictionary of user attributes
+ * @cancellable: (nullable): optional #GCancellable object
+ * @callback: (nullable): a callback to call when the operation is complete
+ * @user_data: (nullable): the data to pass to @callback
+ *
+ * See cog_client_update_user_attributes() for documentation.
+ * This version completes the request without blocking and calls @callback when
+ * finished.
+ * In your @callback, you must call cog_client_update_user_attributes_finish()
+ * to get the results of the request.
+ */
+void
+cog_client_update_user_attributes_async (CogClient *self,
+                                         const char *access_token,
+                                         GHashTable *user_attributes,
+                                         GCancellable *cancellable,
+                                         GAsyncReadyCallback callback,
+                                         gpointer user_data)
+{
+  g_return_if_fail(COG_IS_CLIENT (self));
+  g_return_if_fail(!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_return_if_fail(
+    update_user_attributes_validate_in_parameters (access_token,
+                                                   user_attributes));
+
+  GTask *task = g_task_new (self, cancellable, callback, user_data);
+
+  CogClientPrivate *priv = GET_PRIVATE (self);
+  UpdateUserAttributesRequest request =
+    update_user_attributes_build_request (access_token, user_attributes);
+
+  priv->internal.UpdateUserAttributesAsync (request,
+    update_user_attributes_handle_request,
+    Aws::MakeShared<GTaskAsyncContext> (_COG_ALLOCATION_TAG, task));
+}
+
+/**
+ * cog_client_update_user_attributes_finish:
+ * @self: the #CogClient
+ * @res: the #GAsyncResult passed to your callback
+ * @code_delivery_details_list: (out) (element-type CogCodeDeliveryDetails):
+ *   list of code delivery details returned by the server
+ * @error: error location
+ *
+ * See cog_client_update_user_attributes() for documentation.
+ * After starting an asynchronous request with
+ * cog_client_update_user_attributes_async(), you must call this in your
+ * callback to finish the request and receive the return values or handle the
+ * errors.
+ *
+ * Returns: %TRUE if the request completed successfully, %FALSE on error
+ */
+gboolean
+cog_client_update_user_attributes_finish (CogClient *self,
+                                          GAsyncResult *res,
+                                          GList **code_delivery_details_list,
+                                          GError **error)
+{
+  g_return_val_if_fail (COG_IS_CLIENT (self), FALSE);
+  g_return_val_if_fail (G_IS_TASK (res), FALSE);
+  g_return_val_if_fail(!error || !*error, FALSE);
+  g_return_val_if_fail(
+    update_user_attributes_validate_out_parameters (code_delivery_details_list),
+    FALSE);
+
+  auto *result =
+    static_cast<UpdateUserAttributesResult *> (g_task_propagate_pointer (G_TASK (res), error));
+  if (!result)
+    return FALSE;
+
+  update_user_attributes_unpack_result (*result, code_delivery_details_list);
   delete result;
   return TRUE;
 }
