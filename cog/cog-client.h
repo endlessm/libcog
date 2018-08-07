@@ -161,6 +161,34 @@ COG_AVAILABLE_IN_ALL
 CogClient *cog_client_new (void);
 
 COG_AVAILABLE_IN_ALL
+gboolean cog_client_get_user (CogClient *self,
+                              const char *access_token,
+                              GCancellable *cancellable,
+                              char **username,
+                              GHashTable **user_attributes,
+                              GList **mfa_options,
+                              char **preferred_mfa_setting,
+                              char ***user_mfa_settings_list,
+                              GError **error);
+
+COG_AVAILABLE_IN_ALL
+void cog_client_get_user_async (CogClient *self,
+                                const char *access_token,
+                                GCancellable *cancellable,
+                                GAsyncReadyCallback callback,
+                                gpointer user_data);
+
+COG_AVAILABLE_IN_ALL
+gboolean cog_client_get_user_finish (CogClient *self,
+                                     GAsyncResult *res,
+                                     char **username,
+                                     GHashTable **user_attributes,
+                                     GList **mfa_options,
+                                     char **preferred_mfa_setting,
+                                     char ***user_mfa_settings_list,
+                                     GError **error);
+
+COG_AVAILABLE_IN_ALL
 gboolean cog_client_initiate_auth (CogClient *self,
                                    CogAuthFlow auth_flow,
                                    GHashTable *auth_parameters,

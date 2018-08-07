@@ -10,6 +10,7 @@
  */
 
 #include <aws/cognito-idp/CognitoIdentityProviderClient.h>
+#include <aws/cognito-idp/model/GetUserRequest.h>
 #include <aws/cognito-idp/model/InitiateAuthRequest.h>
 #include <aws/cognito-idp/model/SignUpRequest.h>
 #include <aws/core/utils/Outcome.h>
@@ -29,6 +30,9 @@ using Aws::Client::AsyncCallerContext;
 using Aws::CognitoIdentityProvider::CognitoIdentityProviderClient;
 using Aws::CognitoIdentityProvider::Model::AuthFlowType;
 using Aws::CognitoIdentityProvider::Model::AttributeType;
+using Aws::CognitoIdentityProvider::Model::GetUserOutcome;
+using Aws::CognitoIdentityProvider::Model::GetUserRequest;
+using Aws::CognitoIdentityProvider::Model::GetUserResult;
 using Aws::CognitoIdentityProvider::Model::InitiateAuthOutcome;
 using Aws::CognitoIdentityProvider::Model::InitiateAuthRequest;
 using Aws::CognitoIdentityProvider::Model::InitiateAuthResult;
@@ -103,6 +107,250 @@ cog_client_init (CogClient *self G_GNUC_UNUSED)
 }
 
 /* METHODS */
+
+static gboolean
+get_user_validate_in_parameters (const char *access_token)
+{
+  g_return_val_if_fail(access_token, FALSE);
+  g_return_val_if_fail (_cog_is_valid_access_token (access_token), FALSE);
+  return TRUE;
+}
+
+static gboolean
+get_user_validate_out_parameters (char **username,
+                                  GHashTable **user_attributes,
+                                  GList **mfa_options,
+                                  char **preferred_mfa_setting,
+                                  char ***user_mfa_settings_list)
+{
+  g_return_val_if_fail (username, FALSE);
+  g_return_val_if_fail (user_attributes, FALSE);
+  g_return_val_if_fail (mfa_options, FALSE);
+  g_return_val_if_fail (preferred_mfa_setting, FALSE);
+  g_return_val_if_fail (user_mfa_settings_list, FALSE);
+  return TRUE;
+}
+
+static GetUserRequest
+get_user_build_request (const char *access_token)
+{
+  return GetUserRequest ().WithAccessToken (access_token);
+}
+
+static void
+get_user_unpack_result (GetUserResult& result,
+                        char **username,
+                        GHashTable **user_attributes,
+                        GList **mfa_options,
+                        char **preferred_mfa_setting,
+                        char ***user_mfa_settings_list)
+{
+  *username = g_strdup (result.GetUsername ().c_str ());
+  *preferred_mfa_setting = g_strdup (result.GetPreferredMfaSetting ().c_str ());
+
+  *user_attributes = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                            g_free, g_free);
+  _cog_vector_to_hash_table (result.GetUserAttributes (), *user_attributes);
+
+  *mfa_options = NULL;
+  for (auto& option : result.GetMFAOptions ())
+    *mfa_options = g_list_prepend (*mfa_options,
+                                   _cog_mfa_option_from_internal (option));
+  *mfa_options = g_list_reverse (*mfa_options);
+
+  *user_mfa_settings_list = _cog_vector_to_strv (result.GetUserMFASettingList ());
+}
+
+/* Work around the lack of a copy or move constructor for GetUserResult. Returns
+ * a GetUserResult allocated on the heap, suitable for returning as a pointer
+ * with g_task_return_pointer() */
+static GetUserResult *
+get_user_move_result (const GetUserResult&& result)
+{
+  auto *retval = new GetUserResult ();
+  retval->SetUsername (std::move (result.GetUsername ()));
+  retval->SetUserAttributes (std::move (result.GetUserAttributes ()));
+  retval->SetMFAOptions (std::move (result.GetMFAOptions ()));
+  retval->SetPreferredMfaSetting (std::move (result.GetPreferredMfaSetting ()));
+  retval->SetUserMFASettingList (std::move (result.GetUserMFASettingList ()));
+  return retval;
+}
+
+static void
+get_user_handle_request (const CognitoIdentityProviderClient *client G_GNUC_UNUSED,
+                         const GetUserRequest& request G_GNUC_UNUSED,
+                         const GetUserOutcome& outcome,
+                         const std::shared_ptr<const AsyncCallerContext>& cx)
+{
+  GTask *task = std::static_pointer_cast<const GTaskAsyncContext> (cx)->task();
+
+  if (!outcome.IsSuccess ())
+    {
+      auto& aws_error = outcome.GetError ();
+      GError *new_error = g_error_new_literal (COG_IDENTITY_PROVIDER_ERROR,
+                                               int(aws_error.GetErrorType ()),
+                                               aws_error.GetMessage ().c_str ());
+      g_task_return_error (task, new_error);
+      return;
+    }
+
+  GetUserResult *result_ref = get_user_move_result (std::move (outcome.GetResult ()));
+  g_task_return_pointer (task, result_ref, [](void *data)
+    {
+      delete static_cast<GetUserResult *> (data);
+    });
+}
+
+/**
+ * cog_client_get_user:
+ * @self: the #CogClient
+ * @access_token: the access token returned by the server response
+ * @cancellable: (nullable): optional #GCancellable object
+ * @username: (out): the username of the user retrieved
+ * @user_attributes: (out) (element-type utf8 utf8): a dictionary of user
+ *   attributes
+ * @mfa_options: (out) (element-type CogMFAOption): the options for MFA (e.g.,
+ *   email or phone number)
+ * @preferred_mfa_setting: (out): the user's preferred MFA setting
+ * @user_mfa_settings_list: (out): list of the user's MFA settings
+ * @error: error location
+ *
+ * Gets the user attributes and metadata for a user.
+ *
+ * For custom attributes, `custom:` will be prepended to the attribute keys in
+ * @user_attributes.
+ *
+ * Returns: %TRUE if the request completed successfully, %FALSE on error
+ */
+gboolean
+cog_client_get_user (CogClient *self,
+                     const char *access_token,
+                     GCancellable *cancellable,
+                     char **username,
+                     GHashTable **user_attributes,
+                     GList **mfa_options,
+                     char **preferred_mfa_setting,
+                     char ***user_mfa_settings_list,
+                     GError **error)
+{
+  g_return_val_if_fail(COG_IS_CLIENT (self), FALSE);
+  g_return_val_if_fail(!cancellable || G_IS_CANCELLABLE (cancellable), FALSE);
+  g_return_val_if_fail(!error || !*error, FALSE);
+  g_return_val_if_fail(get_user_validate_in_parameters (access_token), FALSE);
+  g_return_val_if_fail(
+    get_user_validate_out_parameters (username, user_attributes, mfa_options,
+                                      preferred_mfa_setting,
+                                      user_mfa_settings_list), FALSE);
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return FALSE;
+
+  CogClientPrivate *priv = GET_PRIVATE (self);
+  GetUserRequest request = get_user_build_request (access_token);
+  auto outcome = priv->internal.GetUser (request);
+
+  if (!outcome.IsSuccess ())
+    {
+      auto& aws_error = outcome.GetError ();
+      GError *new_error = g_error_new_literal (COG_IDENTITY_PROVIDER_ERROR,
+                                               int (aws_error.GetErrorType ()),
+                                               aws_error.GetMessage ().c_str ());
+      g_propagate_error (error, new_error);
+      return FALSE;
+    }
+
+  if (g_cancellable_set_error_if_cancelled (cancellable, error))
+    return FALSE;
+
+  get_user_unpack_result(outcome.GetResult (), username, user_attributes,
+                         mfa_options, preferred_mfa_setting,
+                         user_mfa_settings_list);
+
+  return TRUE;
+}
+
+/**
+ * cog_client_get_user_async:
+ * @self: the #CogClient
+ * @access_token: the access token returned by the server response
+ * @cancellable: (nullable): optional #GCancellable object
+ * @callback: (nullable): a callback to call when the operation is complete
+ * @user_data: (nullable): the data to pass to @callback
+ *
+ * See cog_client_get_user() for documentation.
+ * This version completes the request without blocking and calls @callback when
+ * finished.
+ * In your @callback, you must call cog_client_get_user_finish() to get the
+ * results of the request.
+ */
+void
+cog_client_get_user_async (CogClient *self,
+                           const char *access_token,
+                           GCancellable *cancellable,
+                           GAsyncReadyCallback callback,
+                           gpointer user_data)
+{
+  g_return_if_fail(COG_IS_CLIENT (self));
+  g_return_if_fail(!cancellable || G_IS_CANCELLABLE (cancellable));
+  g_return_if_fail(get_user_validate_in_parameters (access_token));
+
+  GTask *task = g_task_new (self, cancellable, callback, user_data);
+
+  CogClientPrivate *priv = GET_PRIVATE (self);
+  GetUserRequest request = get_user_build_request (access_token);
+
+  priv->internal.GetUserAsync (request, get_user_handle_request,
+    Aws::MakeShared<GTaskAsyncContext> (_COG_ALLOCATION_TAG, task));
+}
+
+/**
+ * cog_client_get_user_finish:
+ * @self: the #CogClient
+ * @res: the #GAsyncResult passed to your callback
+ * @username: (out): the username of the user retrieved
+ * @user_attributes: (out) (element-type utf8 utf8): a dictionary of user
+ *   attributes
+ * @mfa_options: (out) (element-type CogMFAOption): the options for MFA (e.g.,
+ *   email or phone number)
+ * @preferred_mfa_setting: (out): the user's preferred MFA setting
+ * @user_mfa_settings_list: (out): list of the user's MFA settings
+ * @error: error location
+ *
+ * See cog_client_get_user() for documentation.
+ * After starting an asynchronous request with cog_client_get_user_async(), you
+ * must call this in your callback to finish the request and receive the return
+ * values or handle the errors.
+ *
+ * Returns: %TRUE if the request completed successfully, %FALSE on error
+ */
+gboolean
+cog_client_get_user_finish (CogClient *self,
+                            GAsyncResult *res,
+                            char **username,
+                            GHashTable **user_attributes,
+                            GList **mfa_options,
+                            char **preferred_mfa_setting,
+                            char ***user_mfa_settings_list,
+                            GError **error)
+{
+  g_return_val_if_fail (COG_IS_CLIENT (self), FALSE);
+  g_return_val_if_fail (G_IS_TASK (res), FALSE);
+  g_return_val_if_fail(!error || !*error, FALSE);
+  g_return_val_if_fail (
+    get_user_validate_out_parameters (username, user_attributes, mfa_options,
+                                      preferred_mfa_setting,
+                                      user_mfa_settings_list), FALSE);
+
+  auto *result =
+    static_cast<GetUserResult *> (g_task_propagate_pointer (G_TASK (res), error));
+  if (!result)
+    return FALSE;
+
+  get_user_unpack_result (*result, username, user_attributes, mfa_options,
+                          preferred_mfa_setting, user_mfa_settings_list);
+  delete result;
+  return TRUE;
+}
 
 static gboolean
 initiate_auth_validate_in_parameters (CogAuthFlow auth_flow,
@@ -229,9 +477,7 @@ initiate_auth_unpack_result (InitiateAuthResult& result,
   *session = NULL;
 }
 
-/* Work around the lack of a copy or move constructor for InitiateAuthResult.
- * Returns an InitiateAuthResult allocated on the heap, suitable for returning
- * as a pointer with g_task_return_pointer() */
+/* Work around the lack of a copy or move constructor. See above */
 static InitiateAuthResult *
 initiate_auth_move_result (const InitiateAuthResult&& result)
 {

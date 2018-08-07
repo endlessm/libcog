@@ -1,0 +1,18 @@
+---
+type: MFAOption
+from_internal: true
+h_file_head: |
+  #include "cog/cog-utils.h"
+doc: Specifies the different settings for multi-factor authentication (MFA).
+fields:
+  - name: AttributeName
+    type: string
+    annotations: [nullable]
+    min_length: 1
+    max_length: 32
+    pattern: '[\p{L}\p{M}\p{S}\p{N}\p{P}]+'
+    doc: The attribute name.
+  - name: DeliveryMedium
+    type: enum
+    class: DeliveryMedium
+    doc: The delivery medium (email message or phone number).

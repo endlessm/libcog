@@ -34,6 +34,7 @@ G_DEFINE_QUARK(cog-identity-provider-error, cog_identity_provider_error)
     return g_regex_match (name ## _regex, string, GRegexMatchFlags (0), NULL); \
   }
 
+DEFINE_REGEX_VALIDATOR(access_token, "[A-Za-z0-9-_=.]+")
 DEFINE_REGEX_VALIDATOR(client_id, "[\\w+]+")
 DEFINE_REGEX_VALIDATOR(password, "[\\S]+")
 DEFINE_REGEX_VALIDATOR(secret_hash, "[\\w+=/]+")
@@ -61,4 +62,24 @@ _cog_hash_table_to_vector (GHashTable *hash_table,
       vector->push_back(attribute);
     },
     vector);
+}
+
+void
+_cog_vector_to_hash_table (const Aws::Vector<AttributeType>& vector,
+                           GHashTable *hash_table)
+{
+  for (auto& attribute : vector)
+    g_hash_table_insert (hash_table, g_strdup (attribute.GetName (). c_str ()),
+                         g_strdup (attribute.GetValue (). c_str ()));
+}
+
+char **
+_cog_vector_to_strv (const Aws::Vector<Aws::String>& vector)
+{
+  char **retval = g_new0 (char *, vector.size() + 1);
+  char **iter = retval;
+  for (auto& string : vector)
+    *iter++ = g_strdup (string.c_str ());
+  *iter = NULL;
+  return retval;
 }

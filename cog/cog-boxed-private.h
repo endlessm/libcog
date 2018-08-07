@@ -3,12 +3,14 @@
 #include <aws/cognito-idp/model/AnalyticsMetadataType.h>
 #include <aws/cognito-idp/model/AuthenticationResultType.h>
 #include <aws/cognito-idp/model/CodeDeliveryDetailsType.h>
+#include <aws/cognito-idp/model/MFAOptionType.h>
 #include <aws/cognito-idp/model/NewDeviceMetadataType.h>
 #include <aws/cognito-idp/model/UserContextDataType.h>
 
 #include "cog/cog-analytics-metadata.h"
 #include "cog/cog-authentication-result.h"
 #include "cog/cog-code-delivery-details.h"
+#include "cog/cog-mfa-option.h"
 #include "cog/cog-new-device-metadata.h"
 #include "cog/cog-user-context-data.h"
 
@@ -19,4 +21,5 @@ Aws::CognitoIdentityProvider::Model::AnalyticsMetadataType _cog_analytics_metada
 Aws::CognitoIdentityProvider::Model::UserContextDataType _cog_user_context_data_to_internal (CogUserContextData *self);
 CogAuthenticationResult *_cog_authentication_result_from_internal (const Aws::CognitoIdentityProvider::Model::AuthenticationResultType& internal);
 CogCodeDeliveryDetails *_cog_code_delivery_details_from_internal (const Aws::CognitoIdentityProvider::Model::CodeDeliveryDetailsType& internal);
+CogMFAOption *_cog_mfa_option_from_internal (const Aws::CognitoIdentityProvider::Model::MFAOptionType& internal);
 CogNewDeviceMetadata *_cog_new_device_metadata_from_internal (const Aws::CognitoIdentityProvider::Model::NewDeviceMetadataType& internal);
