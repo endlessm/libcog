@@ -64,7 +64,6 @@ rules:
     - error
     - 4
     - MemberExpression: 'off'
-  indent-legacy: error
   key-spacing: error
   keyword-spacing:
     - error
