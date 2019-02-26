@@ -85,6 +85,50 @@ typedef enum {
   COG_CHALLENGE_NAME_NEW_PASSWORD_REQUIRED,
 } CogChallengeName;
 
+/**
+ * CogRegion:
+ * @COG_REGION_US_EAST_1: us-east-1 region.
+ * @COG_REGION_US_EAST_2: us-east-2 region.
+ * @COG_REGION_US_WEST_1: us-west-1 region.
+ * @COG_REGION_US_WEST_2: us-west-2 region.
+ * @COG_REGION_EU_WEST_1: eu-west-1 region.
+ * @COG_REGION_EU_WEST_2: eu-west-2 region.
+ * @COG_REGION_EU_WEST_3: eu-west-3 region.
+ * @COG_REGION_EU_CENTRAL_1: eu-central-1 region.
+ * @COG_REGION_AP_SOUTHEAST_1: ap-southeast-1 region.
+ * @COG_REGION_AP_SOUTHEAST_2: ap-southeast-2 region.
+ * @COG_REGION_AP_NORTHEAST_1: ap-northeast-1 region.
+ * @COG_REGION_AP_NORTHEAST_2: ap-northeast-2 region.
+ * @COG_REGION_SA_EAST_1: sa-east-1 region.
+ * @COG_REGION_CA_CENTRAL_1: ca-central-1 region.
+ * @COG_REGION_AP_SOUTH_1: ap-south-1 region.
+ * @COG_REGION_CN_NORTH_1: cn-north-1 region.
+ * @COG_REGION_CN_NORTHWEST_1: cn-northwest-1 region.
+ * @COG_REGION_US_GOV_WEST_1: us-gov-west_1 region.
+ *
+ * AWS region.
+ */
+typedef enum {
+  COG_REGION_US_EAST_1,
+  COG_REGION_US_EAST_2,
+  COG_REGION_US_WEST_1,
+  COG_REGION_US_WEST_2,
+  COG_REGION_EU_WEST_1,
+  COG_REGION_EU_WEST_2,
+  COG_REGION_EU_WEST_3,
+  COG_REGION_EU_CENTRAL_1,
+  COG_REGION_AP_SOUTHEAST_1,
+  COG_REGION_AP_SOUTHEAST_2,
+  COG_REGION_AP_NORTHEAST_1,
+  COG_REGION_AP_NORTHEAST_2,
+  COG_REGION_SA_EAST_1,
+  COG_REGION_CA_CENTRAL_1,
+  COG_REGION_AP_SOUTH_1,
+  COG_REGION_CN_NORTH_1,
+  COG_REGION_CN_NORTHWEST_1,
+  COG_REGION_US_GOV_WEST_1
+} CogRegion;
+
 /* Defines for hashtable keys */
 
 /**
