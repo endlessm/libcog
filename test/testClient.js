@@ -8,4 +8,8 @@ describe('API client', function () {
     it('can be constructed', function () {
         void new Cog.Client();
     });
+
+    it('can be constructed with params', function () {
+        void new Cog.Client({region: Cog.Region.US_EAST_2});
+    });
 });

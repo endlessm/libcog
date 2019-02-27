@@ -81,6 +81,7 @@ cog_user_context_data_set_encoded_data
 CogAuthFlow
 CogChallengeName
 CogDeliveryMedium
+CogRegion
 <SUBSECTION String constants>
 COG_PARAMETER_DEVICE_KEY
 COG_PARAMETER_NEW_PASSWORD
@@ -116,6 +117,8 @@ cog_mfa_option_get_type
 COG_TYPE_MFA_OPTION
 cog_new_device_metadata_get_type
 COG_TYPE_NEW_DEVICE_METADATA
+cog_region_get_type
+COG_TYPE_REGION
 cog_user_context_data_get_type
 COG_TYPE_USER_CONTEXT_DATA
 </SECTION>

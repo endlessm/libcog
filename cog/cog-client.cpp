@@ -21,13 +21,15 @@
 #include "cog/cog-authentication-result.h"
 #include "cog/cog-boxed-private.h"
 #include "cog/cog-client.h"
+#include "cog/cog-enums.h"
 #include "cog/cog-user-context-data.h"
-#include "cog/cog-utils.h"
 #include "cog/cog-utils-private.h"
+#include "cog/cog-utils.h"
 
 #define GET_PRIVATE(o) (static_cast<CogClientPrivate *> (cog_client_get_instance_private (COG_CLIENT (o))))
 
 using Aws::Client::AsyncCallerContext;
+using Aws::Client::ClientConfiguration;
 using Aws::CognitoIdentityProvider::CognitoIdentityProviderClient;
 using Aws::CognitoIdentityProvider::Model::AuthFlowType;
 using Aws::CognitoIdentityProvider::Model::AttributeType;
@@ -55,6 +57,7 @@ public:
 typedef struct
 {
   CognitoIdentityProviderClient internal;
+  CogRegion region;
 } CogClientPrivate;
 
 struct _CogClient {
@@ -62,6 +65,51 @@ struct _CogClient {
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CogClient, cog_client, G_TYPE_OBJECT)
+
+enum {
+  PROP_REGION = 1,
+  N_PROPERTIES
+};
+
+static void
+cog_client_set_property (GObject *object,
+                         unsigned property_id,
+                         const GValue *value,
+                         GParamSpec *pspec)
+{
+  CogClient *self = COG_CLIENT (object);
+  CogClientPrivate *priv = GET_PRIVATE (self);
+
+  switch (property_id) {
+    case PROP_REGION:
+      priv->region = (CogRegion) g_value_get_enum (value);
+      break;
+    default:
+      /* We don't have any other property... */
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+cog_client_get_property (GObject *object,
+                         unsigned property_id,
+                         GValue *value,
+                         GParamSpec *pspec)
+{
+  CogClient *self = COG_CLIENT (object);
+  CogClientPrivate *priv = GET_PRIVATE (self);
+
+  switch (property_id) {
+    case PROP_REGION:
+      g_value_set_enum (value, priv->region);
+      break;
+    default:
+      /* We don't have any other property... */
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
 
 /**
  * cog_client_new:
@@ -81,8 +129,69 @@ static void
 cog_client_constructed (GObject *object)
 {
   CogClientPrivate *priv = GET_PRIVATE (object);
+  ClientConfiguration config = Aws::Client::ClientConfiguration();
+  G_OBJECT_CLASS (cog_client_parent_class)->constructed (object);
 
-  new (&priv->internal) CognitoIdentityProviderClient();
+  switch (priv->region) {
+    case COG_REGION_US_EAST_1:
+      config.region = Aws::Region::US_EAST_1;
+      break;
+    case COG_REGION_US_EAST_2:
+      config.region = Aws::Region::US_EAST_2;
+      break;
+    case COG_REGION_US_WEST_1:
+      config.region = Aws::Region::US_WEST_1;
+      break;
+    case COG_REGION_US_WEST_2:
+      config.region = Aws::Region::US_WEST_2;
+      break;
+    case COG_REGION_EU_WEST_1:
+      config.region = Aws::Region::EU_WEST_1;
+      break;
+    case COG_REGION_EU_WEST_2:
+      config.region = Aws::Region::EU_WEST_2;
+      break;
+    case COG_REGION_EU_WEST_3:
+      config.region = Aws::Region::EU_WEST_3;
+      break;
+    case COG_REGION_EU_CENTRAL_1:
+      config.region = Aws::Region::EU_CENTRAL_1;
+      break;
+    case COG_REGION_AP_SOUTHEAST_1:
+      config.region = Aws::Region::AP_SOUTHEAST_1;
+      break;
+    case COG_REGION_AP_SOUTHEAST_2:
+      config.region = Aws::Region::AP_SOUTHEAST_2;
+      break;
+    case COG_REGION_AP_NORTHEAST_1:
+      config.region = Aws::Region::AP_NORTHEAST_1;
+      break;
+    case COG_REGION_AP_NORTHEAST_2:
+      config.region = Aws::Region::AP_NORTHEAST_2;
+      break;
+    case COG_REGION_SA_EAST_1:
+      config.region = Aws::Region::SA_EAST_1;
+      break;
+    case COG_REGION_CA_CENTRAL_1:
+      config.region = Aws::Region::CA_CENTRAL_1;
+      break;
+    case COG_REGION_AP_SOUTH_1:
+      config.region = Aws::Region::AP_SOUTH_1;
+      break;
+    case COG_REGION_CN_NORTH_1:
+      config.region = Aws::Region::CN_NORTH_1;
+      break;
+    case COG_REGION_CN_NORTHWEST_1:
+      config.region = Aws::Region::CN_NORTHWEST_1;
+      break;
+    case COG_REGION_US_GOV_WEST_1:
+      config.region = Aws::Region::US_GOV_WEST_1;
+      break;
+    default:
+      break;
+  }
+
+  new (&priv->internal) CognitoIdentityProviderClient(config);
 }
 
 static void
@@ -103,6 +212,20 @@ cog_client_class_init (CogClientClass *klass)
 
   object_class->constructed = cog_client_constructed;
   object_class->finalize = cog_client_finalize;
+
+  object_class->set_property = cog_client_set_property;
+  object_class->get_property = cog_client_get_property;
+
+  g_object_class_install_property (object_class,
+                                   PROP_REGION,
+                                   g_param_spec_enum ("region",
+                                                      "Region",
+                                                      "AWS region",
+                                                      COG_TYPE_REGION,
+                                                      COG_REGION_US_EAST_1,
+                                                      (GParamFlags)
+                                                      (G_PARAM_CONSTRUCT_ONLY |
+                                                       G_PARAM_READWRITE)));
 }
 
 static void
