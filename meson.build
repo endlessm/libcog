@@ -55,7 +55,9 @@ pkg.generate(filebase: api_name, libraries: [main_library],
     url: 'http://endlessm.github.io/libcog',
     version: meson.project_version())
 
-subdir('test')
+if get_option('test')
+    subdir('test')
+endif
 
 if get_option('documentation')
     subdir('docs')
